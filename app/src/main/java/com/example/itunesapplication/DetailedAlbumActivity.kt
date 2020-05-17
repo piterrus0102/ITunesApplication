@@ -62,7 +62,7 @@ class DetailedAlbumActivity : AppCompatActivity() {
             trackName.text = i.trackName
             trackName.setTextColor(Color.BLACK)
             val textOfAlbumLP = TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.MATCH_PARENT)
-            trackName.layoutParams = textOfAlbumLP
+            trackName.layoutParams = textOfAlbumLP //fdsfsdsd
             trackName.textSize = 14F
             trackName.gravity = Gravity.CENTER_VERTICAL
 
