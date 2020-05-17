@@ -1,16 +1,12 @@
 package com.example.itunesapplication
 
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Matrix
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.os.Handler
-import android.util.Log
 import android.view.Gravity
 import android.widget.*
-import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.appcompat.app.AppCompatActivity
 
 class DetailedAlbumActivity : AppCompatActivity() {
 
@@ -35,28 +31,17 @@ class DetailedAlbumActivity : AppCompatActivity() {
     }
 
     fun loadAlbum(){
-        val width: Int = bitmapOfCurrentAlbum!!.getWidth()
-        val height: Int = bitmapOfCurrentAlbum!!.getHeight()
-        Log.v("width", width.toString())
-        Log.v("height", height.toString())
-        val scaleWidth = 600F
-        val scaleHeight = 600F
-        // CREATE A MATRIX FOR THE MANIPULATION
-        // CREATE A MATRIX FOR THE MANIPULATION
+
+        val width = bitmapOfCurrentAlbum!!.getWidth()
+        val height = bitmapOfCurrentAlbum!!.getHeight()
+        val scaleWidth = 300F / width
+        val scaleHeight = 300F / height
+
         val matrix = Matrix()
-        // RESIZE THE BIT MAP
-        // RESIZE THE BIT MAP
+
         matrix.postScale(scaleWidth, scaleHeight)
 
-        // "RECREATE" THE NEW BITMAP
-
-        // "RECREATE" THE NEW BITMAP
-        val resizedBitmap = Bitmap.createScaledBitmap(bitmapOfCurrentAlbum!!, 300,300,true)
-        bitmapOfCurrentAlbum!!.recycle()
-
-        imageOfCurrentAlbum.setImageBitmap(resizedBitmap)
-        /*imageOfCurrentAlbum.scaleType = ImageView.ScaleType.FIT_XY
-        imageOfCurrentAlbum.layoutParams = ConstraintLayout.LayoutParams(300,300)*/
+        imageOfCurrentAlbum.setImageBitmap(Bitmap.createBitmap(bitmapOfCurrentAlbum!!, 0, 0, width, height, matrix, false))
         nameOfCurrentAlbum.text = stringNameOfAlbum
     }
 
@@ -76,7 +61,7 @@ class DetailedAlbumActivity : AppCompatActivity() {
             val trackName = TextView(this)
             trackName.text = i.trackName
             trackName.setTextColor(Color.BLACK)
-            val textOfAlbumLP = TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT)
+            val textOfAlbumLP = TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.MATCH_PARENT)
             trackName.layoutParams = textOfAlbumLP
             trackName.textSize = 14F
             trackName.gravity = Gravity.CENTER_VERTICAL
