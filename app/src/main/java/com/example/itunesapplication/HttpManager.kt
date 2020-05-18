@@ -1,7 +1,6 @@
 package com.example.itunesapplication
 
 import android.content.Context
-import android.content.Intent
 import android.graphics.BitmapFactory
 import android.util.Log
 import android.widget.Toast
@@ -15,71 +14,59 @@ import java.io.IOException
 import java.net.URL
 import java.text.SimpleDateFormat
 
-class HttpManager(context: Context) {
+class HttpManager(var context: Context) { // Контекст передается только для работы с Toast
 
     companion object{
-        var stopPreloaderFlag = false
-        var connectionSuccess = false
+        var stopPreloaderFlag = false // данная переменная служит флагом для вызова функции stopPreloader класса PreloaderClass
+        var connectionSuccess = false // данная переменная служит чекпоинтом для успешного окончания загрузки данных по Response-коду 200
     }
 
-    var context: Context
-
-    init {
-        this.context = context
-    }
-
-    var finish: Boolean? = null
-
-
-    fun isNetworkAvailableAndConnected(): Boolean {
+    fun isNetworkAvailableAndConnected(): Boolean { //функция проверки наличия интернет-соединения на мобильном устройстве.
         val runtime = Runtime.getRuntime()
         try {
 
-            val ipProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8")
-            val exitValue = ipProcess.waitFor()
-            return (exitValue == 0)
+            val ipProcess = runtime.exec("/system/bin/ping -c 1 8.8.8.8") // выполнение указанной строковой команды в отдельном процессе Android
+            val exitValue = ipProcess.waitFor() // ожидание завершения процесса и присвоения кода завершения переменной exitValue
+            return (exitValue == 0) // 0 означает что операция успешно завершена, а значит будет возвращено true
 
         } catch (e: IOException) {
             e.printStackTrace()
         } catch (e: InterruptedException) {
             e.printStackTrace()
         }
-        return false
+        return false // возвращает false в случае неудачного завершения выполнения команды в строке 35
     }
 
     fun makeAlbumRequest(requestString: String){
         RequestFactory.instance.setOfAlbums().clear()
-        val url = URL("https://itunes.apple.com/search?term=$requestString&entity=album&limit=100")
+        val url = URL("https://itunes.apple.com/search?term=$requestString&entity=album&limit=200") // делается запрос requestString - содержащий имя исполнителя с типом результата "album" и лимитом в 200 альбомов (200 выбрано т.к. ни у какого исполнителя нет 200 альбомов записанных - недостижимый предел)
 
-        val okHttpClient = OkHttpClient()
+        val okHttpClient = OkHttpClient() // инициализация OkHttpClient.
         try {
-            val request: Request =
-                Request.Builder().url(url).build()
+            val request: Request = Request.Builder().url(url).build() // построение запроса
 
-            okHttpClient.newCall(request).enqueue(object : Callback {
-                override fun onFailure(call: Call?, e: IOException?) {
-                    if(!isNetworkAvailableAndConnected()) {
+            okHttpClient.newCall(request).enqueue(object : Callback { // обработка колбэка
+                override fun onFailure(call: Call?, e: IOException?) { // неудачная обработка, чаще всего связанная с отсутствием интернета
+                    if(!isNetworkAvailableAndConnected()) { // если отсутствие интернет-соединения
                         doAsync {
                             uiThread {
-                                stopPreloaderFlag = true
+                                stopPreloaderFlag = true // флаг остановки preloader
                                 Toast.makeText(context, "Проверьте интернет-соединение", Toast.LENGTH_LONG).show()
                             }
                         }
                         return
                     }
-                    return
+                    return // любая другая неудача, не связанная с интернет-соединением
                 }
 
                 override fun onResponse(call: Call?, response: Response?) {
-                    Log.v("ResponseCode", response!!.code().toString())
-                    if(response.code() != 200){
+                    if(response!!.code() != 200){ // обработка результата response-кода, если он отличается от 200. Методом проб и ошибок так и не добился никакого другого response-кода. Данное условие сделано "на всякий случай"
                         stopPreloaderFlag = true
                         return
                     }
                     if (response.code() == 200) {
-                        val json = response.body()?.string()
-                        Log.w("JSON", json)
-                        if(JSONObject(json).getInt("resultCount") == 0){
+                        val json = response.body()?.string() // запись в переменную тела ответа
+                        if(JSONObject(json!!).getInt("resultCount") == 0){ // условие когда искомый исполнитель не найден
                             doAsync {
                                 uiThread {
                                     stopPreloaderFlag = true
@@ -87,8 +74,8 @@ class HttpManager(context: Context) {
                                 }
                             }
                         }
-                        for(i in 0..JSONObject(json).getInt("resultCount")-1){
-                            GlobalScope.launch {
+                        for(i in 0 until JSONObject(json).getInt("resultCount")){
+                            GlobalScope.launch { //используется корутина для получения изображения по ссылке из поля "artworkUrl100" и последующей его загрузки
                                 val albumId = JSONObject(json)
                                     .getJSONArray("results")
                                     .getJSONObject(i)
@@ -115,11 +102,10 @@ class HttpManager(context: Context) {
                                     .getJSONArray("results")
                                     .getJSONObject(i)
                                     .get("releaseDate").toString()
-                                val releaseDate = convertDate(releaseDateFromJSON)
-                                val newArtist = AlbumClass(albumId,bitmap,albumName,trackCount,country,releaseDate)
-                                RequestFactory.instance.setOfAlbums().add(newArtist)
-                                Log.v("SizeArray", RequestFactory.instance.setOfAlbums().size.toString())
-                                if(RequestFactory.instance.setOfAlbums().size == JSONObject(json).getInt("resultCount")){
+                                val releaseDate = convertDate(releaseDateFromJSON) // Конвертация даты к dd.MM.yyyy
+                                val newAlbum = AlbumClass(albumId,bitmap,albumName,trackCount,country,releaseDate) // создается объект пользовательского типа AlbumClass
+                                RequestFactory.instance.setOfAlbums().add(newAlbum) // созданный объект помещается в массив
+                                if(i == JSONObject(json).getInt("resultCount")-1){ // проверка окончания загрузки контента и "зеленый свет" переходу к следующему активити путем установки флага connectionSuccess в значение true
                                     stopPreloaderFlag = true
                                     connectionSuccess = true
                                 }
@@ -128,22 +114,21 @@ class HttpManager(context: Context) {
                     }
                 }
             })
-        }catch(e:IllegalArgumentException){
+        }catch(e:IllegalArgumentException){  // ошибка которая может возникнуть в процессе выполнения корутины
             return
         }
     }
 
     fun makeDetailedAlbumRequest(requestString: String){
         RequestFactory.instance.setOfSongs().clear()
-        val url = URL("https://itunes.apple.com/lookup?$requestString")
+        val url = URL("https://itunes.apple.com/lookup?$requestString") // запрос на получение песен в конкретном альбоме. Передается id альбома с entity=song
 
         val okHttpClient = OkHttpClient()
         try {
-            val request: Request =
-                Request.Builder().url(url).build()
+            val request: Request = Request.Builder().url(url).build()
 
             okHttpClient.newCall(request).enqueue(object : Callback {
-                override fun onFailure(call: Call?, e: IOException?) {
+                override fun onFailure(call: Call?, e: IOException?) { // проверка наличия интернет-соединения
                     if(!isNetworkAvailableAndConnected()) {
                         doAsync {
                             uiThread {
@@ -157,16 +142,14 @@ class HttpManager(context: Context) {
                 }
 
                 override fun onResponse(call: Call?, response: Response?) {
-                    Log.v("ResponseCode", response!!.code().toString())
-                    if(response.code() != 200){
+                    if(response!!.code() != 200){
                         stopPreloaderFlag = true
                         return
                     }
                     if (response.code() == 200) {
                         val json = response.body()?.string()
-                        Log.w("JSON", json)
-                        for(i in 0..JSONObject(json).getInt("resultCount")-1){
-                            if(JSONObject(json).getJSONArray("results").getJSONObject(i).get("wrapperType") == "track"){
+                        for(i in 0 until JSONObject(json!!).getInt("resultCount")){
+                            if(JSONObject(json).getJSONArray("results").getJSONObject(i).get("wrapperType") == "track"){ // данное условие нужно потому, что первым объектом массива results в возвращаемом json идет не track а collectionName в поле wrapperType. Соотвественно, необходимо его из цикла исключить
                                 GlobalScope.launch {
                                     val trackName = JSONObject(json)
                                         .getJSONArray("results")
@@ -181,9 +164,9 @@ class HttpManager(context: Context) {
                                         .getJSONArray("results")
                                         .getJSONObject(i)
                                         .get("trackNumber") as Int
-                                    val newSong = SongClass(trackName, trackTimeMillis, trackNumber)
+                                    val newSong = SongClass(trackName, trackTimeMillis, trackNumber) // создание объекта пользовательского типа SongClass
                                     RequestFactory.instance.setOfSongs().add(newSong)
-                                    if(RequestFactory.instance.setOfSongs().size == JSONObject(json).getInt("resultCount")-1){
+                                    if(i == JSONObject(json).getInt("resultCount")-1){ // условие успешного окончания цикла
                                         stopPreloaderFlag = true
                                         connectionSuccess = true
                                     }
@@ -200,10 +183,9 @@ class HttpManager(context: Context) {
     }
 
     fun convertDate(dateFromJSON: String): String{
-        val df = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+        val df = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'") // исходный шаблон входящей строки
         val date = df.parse(dateFromJSON)
-        df.applyPattern("dd.MM.yyyy")
-        Log.v("date",  df.format(date))
-        return df.format(date)
+        df.applyPattern("dd.MM.yyyy") // конечный шаблон входящей строки
+        return df.format(date!!)
     }
 }

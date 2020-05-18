@@ -19,8 +19,8 @@
 
             <EditText
                 android:id="@+id/filterTextField"
-                android:layout_width="307dp"
-                android:layout_height="48dp"
+                android:layout_width="524dp"
+                android:layout_height="54dp"
                 android:ems="10"
                 android:hint="Введите информацию по альбому"
                 android:inputType="textPersonName"

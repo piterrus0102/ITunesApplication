@@ -9,12 +9,12 @@ class AlbumClass(id: Int,
                  country: String,
                  releaseDate:String) {
 
-    var id: Int
-    var albumImage: Bitmap
-    var albumName: String
-    var trackCount: Int
-    var country: String
-    var releaseDate: String
+    var id: Int // id альбома
+    var albumImage: Bitmap // обложка альбома
+    var albumName: String // название альбома
+    var trackCount: Int // количество треков в альбоме
+    var country: String // страна
+    var releaseDate: String // дата выхода альбома
 
     init {
         this.id = id
